@@ -7,7 +7,7 @@ func:
         sub     rsp, 904
         /*if operacja to kontrast*/
         cmp     edx, 1
-        je      .L15
+        je      .c_obliczenieLut
 /*HISTOGRAM*/
 /*inicjaliacja petli obliczajacej lut*/
         test    esi, esi /*sprawdzenie czy ==0*/
@@ -134,53 +134,63 @@ func:
         pop     rbx
         pop     rbp
         ret
-/*KONTRAST*/
-.L15:
+		
+/*KONTRAST*********************************************/
+.c_obliczenieLut:
         mov     edx, 0
         movsd   xmm2, QWORD PTR .LC0[rip]
         pxor    xmm3, xmm3
         movsd   xmm4, QWORD PTR .LC2[rip]
-        jmp     .L2
-.L27:
+        jmp     .c_obliczenieLut_obliczenia
+.c_obliczenieLut_val_les0: /*val<0*/
         mov     BYTE PTR [rsp-120+rdx], 0
-.L7:
+.c_obliczenieLut_warunek:
         add     rdx, 1
         cmp     rdx, 256
-        je      .L26
-.L2:
+        je      .c_zamianaPixeli_przygotowanie
+.c_obliczenieLut_obliczenia:
+	/*obliczenie wartosci lut: contrast*(i-127.5) +127.5;
         pxor    xmm1, xmm1
         cvtsi2sd        xmm1, edx
         subsd   xmm1, xmm2
         mulsd   xmm1, xmm0
         addsd   xmm1, xmm2
         comisd  xmm3, xmm1
-        jnb     .L27
+        jnb     .c_obliczenieLut_val_les0
+	/*val>255*/
         comisd  xmm1, xmm4
-        jb      .L24
+        jb      .c_obliczenieLut_val_between_0_255
         mov     BYTE PTR [rsp-120+rdx], -1
-        jmp     .L7
-.L24:
+        jmp     .c_obliczenieLut_warunek
+.c_obliczenieLut_val_between_0_255: /*0<val<255 -> podstaw obliczona wartosc*/
         cvttsd2si       eax, xmm1
         mov     BYTE PTR [rsp-120+rdx], al
-        jmp     .L7
-.L26:
+        jmp     .c_obliczenieLut_warunek
+		
+		
+.c_zamianaPixeli_przygotowanie: /*podstawienie odpowienich wartosc pixeli w danych obrazka*/
         test    esi, esi
         jle     .koniec
         lea     eax, [rsi-1]
         lea     rdx, [rdi+4+rax*4]
-.L11:
+.c_zamianaPixeli:
+	/*B*/
         movzx   eax, BYTE PTR [rdi]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi], al
+	/*G*/
         movzx   eax, BYTE PTR [rdi+1]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi+1], al
+	/*R*/
         movzx   eax, BYTE PTR [rdi+2]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi+2], al
-        add     rdi, 4
+		
+        add     rdi, 4 /*przesuniecie wskazania na nastepny pixel*/
+		
         cmp     rdi, rdx
-        jne     .L11
+        jne     .c_zamianaPixeli
         jmp     .koniec
 .LC0:
         .long   0
