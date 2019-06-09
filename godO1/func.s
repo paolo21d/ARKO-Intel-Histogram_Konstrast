@@ -15,7 +15,7 @@ func:
         lea     eax, [rsi-1]
         lea     rbp, [rdi+4+rax*4] /*rbp =256 ???? moze 255*/
 		
-        mov     rax, rdi ;wskazanie na poczatek danych
+        mov     rax, rdi /*wskazanie na poczatek danych*/
 .h_znajdzMinMax:
 	/*minB*/
         movzx   edx, BYTE PTR [rax]
