@@ -187,7 +187,7 @@ func:
 		
         add     rdi, 4 /*przesuniecie wskazania na nastepny pixel*/
 		
-        cmp     rdi, rdx
+        cmp     rdi, rdx /*sprawdzenie warunku konca petli zamieniajacej pixele*/
         jne     .c_zamianaPixeli
         jmp     .koniec
 .LC0:
