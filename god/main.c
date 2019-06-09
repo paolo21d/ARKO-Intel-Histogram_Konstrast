@@ -66,8 +66,8 @@ void refactor(int operation, int contrast){
         imgData+=4;
     }*/
 
-    func(imgData, pixelQuantity, operation, (double)(contrast)/dzielnikKontrastu);
-    //funcInsteadAsm(imgData, pixelQuantity, operation, (double)(contrast)/dzielnikKontrastu);
+    func(imgData, pixelQuantity, operation, (double)(contrast)/dzielnikKontrastu); //funkcja Asemblerowa
+    //funcInsteadAsm(imgData, pixelQuantity, operation, (double)(contrast)/dzielnikKontrastu); //funkca w C
     
     //if(operation==1) kontrast((double)(contrast)/dzielnikKontrastu);
     //else histogram();
