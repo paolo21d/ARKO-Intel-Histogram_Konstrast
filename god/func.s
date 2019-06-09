@@ -58,7 +58,7 @@ func:
         mov     DWORD PTR [rbp-24], 0
         jmp     .k_zamianaPixeli_warunek
 .k_zamianaPixeli:
-	;pixel B change
+	;pixel B change *ptr = lut[*ptr];
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   eax, al
@@ -87,7 +87,7 @@ func:
         movzx   eax, BYTE PTR [rbp-1072+rax]
         mov     BYTE PTR [rdx], al
 		
-        add     QWORD PTR [rbp-16], 4 ;przesuniecie wskaźnika w danych obrazka o 4 subpixele 
+        add     QWORD PTR [rbp-16], 4 ;przesuniecie wskaźnika w danych obrazka o 4 subpixele, czyli cały pixel
         add     DWORD PTR [rbp-24], 1 ;zwiekszenie iteratora po petli zamiany pixeli
 .k_zamianaPixeli_warunek:
         mov     eax, DWORD PTR [rbp-24]
@@ -96,58 +96,70 @@ func:
         jmp     .koniec
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .histogram:
-        mov     rax, QWORD PTR [rbp-1080]
+        mov     rax, QWORD PTR [rbp-1080] ;wskazanie na poczatek danych obrazka
         mov     QWORD PTR [rbp-16], rax
-        mov     DWORD PTR [rbp-28], 0
-        jmp     .L13
-.L14:
+		
+        mov     DWORD PTR [rbp-28], 0 ;inicjacja petli findMinMax
+        jmp     .h_findMinMax_warunek
+.h_findMinMax:
+	;minB
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   edx, BYTE PTR [rbp-5]
         cmp     BYTE PTR [rbp-5], al
         cmovbe  eax, edx
         mov     BYTE PTR [rbp-5], al
+	;maxB
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   edx, BYTE PTR [rbp-6]
         cmp     BYTE PTR [rbp-6], al
         cmovnb  eax, edx
         mov     BYTE PTR [rbp-6], al
-        add     QWORD PTR [rbp-16], 1
+		
+        add     QWORD PTR [rbp-16], 1 ;przesuniecie subpixela na G
+	;minG	
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   edx, BYTE PTR [rbp-3]
         cmp     BYTE PTR [rbp-3], al
         cmovbe  eax, edx
         mov     BYTE PTR [rbp-3], al
+	;maxG
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   edx, BYTE PTR [rbp-4]
         cmp     BYTE PTR [rbp-4], al
         cmovnb  eax, edx
         mov     BYTE PTR [rbp-4], al
-        add     QWORD PTR [rbp-16], 1
+		
+        add     QWORD PTR [rbp-16], 1 ;przesuniecie subpixela na G
+	;minR
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   edx, BYTE PTR [rbp-1]
         cmp     BYTE PTR [rbp-1], al
         cmovbe  eax, edx
         mov     BYTE PTR [rbp-1], al
+	;maxR	
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   edx, BYTE PTR [rbp-2]
         cmp     BYTE PTR [rbp-2], al
         cmovnb  eax, edx
         mov     BYTE PTR [rbp-2], al
-        add     QWORD PTR [rbp-16], 2
-        add     DWORD PTR [rbp-28], 1
-.L13:
+		
+        add     QWORD PTR [rbp-16], 2 ;przesuniecie do końca tego pixela, żeby wskazywało na kolejny pixel
+        add     DWORD PTR [rbp-28], 1 ;zwiekszenie iteratora
+.h_findMinMax_warunek:
         mov     eax, DWORD PTR [rbp-28]
         cmp     eax, DWORD PTR [rbp-1084]
-        jl      .L14
-        mov     DWORD PTR [rbp-32], 0
-        jmp     .L15
-.L16:
+        jl      .h_findMinMax
+		
+        mov     DWORD PTR [rbp-32], 0 ;inicjajca petli zamiana pixeli
+        jmp     .h_obliczLut_warunek
+.h_obliczLut:
+	;lutR (255.0/(maxR-minR))*(i-minR);
         movzx   edx, BYTE PTR [rbp-2]
         movzx   eax, BYTE PTR [rbp-1]
         sub     edx, eax
@@ -167,6 +179,7 @@ func:
         mov     eax, DWORD PTR [rbp-32]
         cdqe
         mov     BYTE PTR [rbp-304+rax], dl
+	;lutG (255.0/(maxG-minG))*(i-minG);
         movzx   edx, BYTE PTR [rbp-4]
         movzx   eax, BYTE PTR [rbp-3]
         sub     edx, eax
@@ -186,6 +199,7 @@ func:
         mov     eax, DWORD PTR [rbp-32]
         cdqe
         mov     BYTE PTR [rbp-560+rax], dl
+	;lutB (255.0/(maxB-minB))*(i-minB);
         movzx   edx, BYTE PTR [rbp-6]
         movzx   eax, BYTE PTR [rbp-5]
         sub     edx, eax
@@ -205,15 +219,19 @@ func:
         mov     eax, DWORD PTR [rbp-32]
         cdqe
         mov     BYTE PTR [rbp-816+rax], dl
-        add     DWORD PTR [rbp-32], 1
-.L15:
+		
+        add     DWORD PTR [rbp-32], 1 ;inkrementacja iteratora petli
+.h_obliczLut_warunek:
         cmp     DWORD PTR [rbp-32], 255
-        jle     .L16
-        mov     rax, QWORD PTR [rbp-1080]
+        jle     .h_obliczLut
+		
+        mov     rax, QWORD PTR [rbp-1080] ;wskazanie na poczatek danych obrazka
         mov     QWORD PTR [rbp-16], rax
-        mov     DWORD PTR [rbp-36], 0
-        jmp     .L17
-.L18:
+		
+        mov     DWORD PTR [rbp-36], 0 ;inicjacja petli zmiany pixeli histogram
+        jmp     .h_zamianaPixeli_warunek
+.h_zamianaPixeli:
+	;zamiana B *ptr = lutB[*ptr];
         mov     rax, QWORD PTR [rbp-16]
         movzx   eax, BYTE PTR [rax]
         movzx   eax, al
@@ -221,6 +239,7 @@ func:
         movzx   edx, BYTE PTR [rbp-816+rax]
         mov     rax, QWORD PTR [rbp-16]
         mov     BYTE PTR [rax], dl
+	;zamiana G
         mov     rax, QWORD PTR [rbp-16]
         add     rax, 1
         movzx   eax, BYTE PTR [rax]
@@ -230,6 +249,7 @@ func:
         cdqe
         movzx   eax, BYTE PTR [rbp-560+rax]
         mov     BYTE PTR [rdx], al
+	;zamiana R
         mov     rax, QWORD PTR [rbp-16]
         add     rax, 2
         movzx   eax, BYTE PTR [rax]
@@ -239,12 +259,13 @@ func:
         cdqe
         movzx   eax, BYTE PTR [rbp-304+rax]
         mov     BYTE PTR [rdx], al
-        add     QWORD PTR [rbp-16], 4
-        add     DWORD PTR [rbp-36], 1
-.L17:
+		
+        add     QWORD PTR [rbp-16], 4 ;przeuniecie wskaznika na nastepny pixel
+        add     DWORD PTR [rbp-36], 1 ;inkrementacja iteratora petli
+.h_zamianaPixeli_warunek:
         mov     eax, DWORD PTR [rbp-36]
         cmp     eax, DWORD PTR [rbp-1084]
-        jl      .L18
+        jl      .h_zamianaPixeli
 .koniec:
         nop
         leave
