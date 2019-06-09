@@ -141,13 +141,14 @@ func:
         pxor    xmm3, xmm3
         movsd   xmm4, QWORD PTR .LC2[rip]
         jmp     .c_obliczenieLut_obliczenia
-.c_obliczenieLut_les0:
+.c_obliczenieLut_les0: /*val<0*/
         mov     BYTE PTR [rsp-120+rdx], 0
 .c_obliczenieLut_petla_end:
         add     rdx, 1
         cmp     rdx, 256
         je      .c_zamianaPixeli_przygotowanie
 .c_obliczenieLut_obliczenia:
+	/*obliczenie wartosci lut: contrast*(i-127.5) +127.5*/
         pxor    xmm1, xmm1
         cvtsi2sd        xmm1, edx
         subsd   xmm1, xmm2
@@ -160,26 +161,32 @@ func:
         jb      .c_obliczenieLut_between_0_255
         mov     BYTE PTR [rsp-120+rdx], -1
         jmp     .c_obliczenieLut_petla_end
-.c_obliczenieLut_between_0_255:
+.c_obliczenieLut_between_0_255: /*0<val<255 -> podstaw obliczona wartosc*/
         cvttsd2si       eax, xmm1
         mov     BYTE PTR [rsp-120+rdx], al
         jmp     .c_obliczenieLut_petla_end
+		
 .c_zamianaPixeli_przygotowanie:
         test    esi, esi
         jle     .koniec
         lea     eax, [rsi-1]
         lea     rdx, [rdi+4+rax*4]
-.c_zamianaPixeli:
+.c_zamianaPixeli: /*podstawienie odpowienich wartosc pixeli w danych obrazka*/
+	/*B*/
         movzx   eax, BYTE PTR [rdi]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi], al
+	/*G*/
         movzx   eax, BYTE PTR [rdi+1]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi+1], al
+	/*R*/
         movzx   eax, BYTE PTR [rdi+2]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi+2], al
-        add     rdi, 4
+		
+        add     rdi, 4 /*przesuniecie wskazania na nastepny pixel*/
+		
         cmp     rdi, rdx
         jne     .c_zamianaPixeli
         jmp     .koniec
