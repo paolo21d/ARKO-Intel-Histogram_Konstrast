@@ -9,31 +9,41 @@ func:
         cmp     edx, 1
         je      .L15
 /*HISTOGRAM*/
-        test    esi, esi
-        jle     .L4
+/*inicjaliacja petli obliczajacej lut*/
+        test    esi, esi /*sprawdzenie czy ==0*/
+        jle     .h_obliczLut
         lea     eax, [rsi-1]
-        lea     rbp, [rdi+4+rax*4]
-        mov     rax, rdi
-.L12:
+        lea     rbp, [rdi+4+rax*4] /*rbp =256 ???? moze 255*/
+		
+        mov     rax, rdi ;wskazanie na poczatek danych
+.h_znajdzMinMax:
+	/*minB*/
         movzx   edx, BYTE PTR [rax]
         cmp     cl, dl
         cmova   ecx, edx
+	/*maxB*/
         cmp     r9b, dl
         cmovb   r9d, edx
+	/*minG*/
         movzx   edx, BYTE PTR [rax+1]
         cmp     r8b, dl
         cmova   r8d, edx
+	/*maxG*/
         cmp     r11b, dl
         cmovb   r11d, edx
+	/*minR*/
         movzx   edx, BYTE PTR [rax+2]
         cmp     r10b, dl
         cmova   r10d, edx
+	/*maxR*/
         cmp     bl, dl
         cmovb   ebx, edx
-        add     rax, 4
-        cmp     rbp, rax
-        jne     .L12
-.L4:
+		
+        add     rax, 4 /*przesuniecie wskazania na nastepny pixel*/
+        cmp     rbp, rax /*sprawdzenie warunku konca*/
+        jne     .h_znajdzMinMax
+.h_obliczLut:
+	/*lutR (255.0/(maxR-minR))*(i-minR)*/
         movzx   ebx, bl
         movzx   eax, r10b
         sub     ebx, eax
@@ -42,6 +52,10 @@ func:
         movsd   xmm1, QWORD PTR .LC2[rip]
         movapd  xmm3, xmm1
         divsd   xmm3, xmm0
+		
+		movzx   r9d, r10b
+        not     r9d
+	/*lutG (255.0/(maxG-minG))*(i-minG)*/
         movzx   r11d, r11b
         movzx   eax, r8b
         sub     r11d, eax
@@ -49,6 +63,10 @@ func:
         cvtsi2sd        xmm0, r11d
         movapd  xmm2, xmm1
         divsd   xmm2, xmm0
+		
+		movzx   r8d, r8b
+        not     r8d
+	/*lutB (255.0/(maxB-minB))*(i-minB)*/
         movzx   r9d, r9b
         movzx   eax, cl
         sub     r9d, eax
@@ -56,25 +74,26 @@ func:
         cvtsi2sd        xmm0, r9d
         divsd   xmm1, xmm0
         mov     eax, 1
-        movzx   r9d, r10b
-        not     r9d
-        movzx   r8d, r8b
-        not     r8d
+		
         movzx   ecx, cl
         not     ecx
-.L13:
+        
+.h_saveLut:
+	/*lutR*/
         lea     edx, [r9+rax]
         pxor    xmm0, xmm0
         cvtsi2sd        xmm0, edx
         mulsd   xmm0, xmm3
         cvttsd2si       edx, xmm0
         mov     BYTE PTR [rsp+647+rax], dl
+	/*lutG*/
         lea     edx, [r8+rax]
         pxor    xmm0, xmm0
         cvtsi2sd        xmm0, edx
         mulsd   xmm0, xmm2
         cvttsd2si       edx, xmm0
         mov     BYTE PTR [rsp+391+rax], dl
+	/*lutB*/
         lea     edx, [rcx+rax]
         pxor    xmm0, xmm0
         cvtsi2sd        xmm0, edx
@@ -82,26 +101,35 @@ func:
         cvttsd2si       edx, xmm0
         mov     BYTE PTR [rsp+135+rax], dl
         add     rax, 1
+		/*warunek konca petli obliczajacej lut histogram*/
         cmp     rax, 257
-        jne     .L13
+        jne     .h_saveLut
+		
+		/*inicjacja petli zamieniajacej pixele histogram*/
         test    esi, esi
-        jle     .L1
+        jle     .koniec
         lea     eax, [rsi-1]
         lea     rdx, [rdi+4+rax*4]
-.L14:
+.h_zamianaPixeli:
+	/*B*/
         movzx   eax, BYTE PTR [rdi]
         movzx   eax, BYTE PTR [rsp+136+rax]
         mov     BYTE PTR [rdi], al
+	/*G*/
         movzx   eax, BYTE PTR [rdi+1]
         movzx   eax, BYTE PTR [rsp+392+rax]
         mov     BYTE PTR [rdi+1], al
+	/*R*/
         movzx   eax, BYTE PTR [rdi+2]
         movzx   eax, BYTE PTR [rsp+648+rax]
         mov     BYTE PTR [rdi+2], al
-        add     rdi, 4
+		
+        add     rdi, 4 /*przesuniecie wskaznika na nastpeny pixel*/
+		/*warunek konca petli zamieniajacej pixele histogram*/
         cmp     rdx, rdi
-        jne     .L14
-.L1:
+        jne     .h_zamianaPixeli
+		
+.koniec:
         add     rsp, 904
         pop     rbx
         pop     rbp
@@ -137,7 +165,7 @@ func:
         jmp     .L7
 .L26:
         test    esi, esi
-        jle     .L1
+        jle     .koniec
         lea     eax, [rsi-1]
         lea     rdx, [rdi+4+rax*4]
 .L11:
@@ -153,7 +181,7 @@ func:
         add     rdi, 4
         cmp     rdi, rdx
         jne     .L11
-        jmp     .L1
+        jmp     .koniec
 .LC0:
         .long   0
         .long   1080025088
