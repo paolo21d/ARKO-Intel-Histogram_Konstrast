@@ -7,7 +7,7 @@ func:
         sub     rsp, 904
         /*if operacja to kontrast*/
         cmp     edx, 1
-        je      .c_obliczenieLut
+        je      .L15
 /*HISTOGRAM*/
 /*inicjaliacja petli obliczajacej lut*/
         test    esi, esi /*sprawdzenie czy ==0*/
@@ -15,7 +15,7 @@ func:
         lea     eax, [rsi-1]
         lea     rbp, [rdi+4+rax*4] /*rbp =256 ???? moze 255*/
 		
-        mov     rax, rdi /*wskazanie na poczatek danych*/
+        mov     rax, rdi ;wskazanie na poczatek danych
 .h_znajdzMinMax:
 	/*minB*/
         movzx   edx, BYTE PTR [rax]
@@ -134,63 +134,53 @@ func:
         pop     rbx
         pop     rbp
         ret
-		
-/*KONTRAST*********************************************/
-.c_obliczenieLut:
+/*KONTRAST*/
+.L15:
         mov     edx, 0
         movsd   xmm2, QWORD PTR .LC0[rip]
         pxor    xmm3, xmm3
         movsd   xmm4, QWORD PTR .LC2[rip]
-        jmp     .c_obliczenieLut_obliczenia
-.c_obliczenieLut_val_les0: /*val<0*/
+        jmp     .L2
+.L27:
         mov     BYTE PTR [rsp-120+rdx], 0
-.c_obliczenieLut_warunek:
+.L7:
         add     rdx, 1
         cmp     rdx, 256
-        je      .c_zamianaPixeli_przygotowanie
-.c_obliczenieLut_obliczenia:
-	/*obliczenie wartosci lut: contrast*(i-127.5) +127.5;
+        je      .L26
+.L2:
         pxor    xmm1, xmm1
         cvtsi2sd        xmm1, edx
         subsd   xmm1, xmm2
         mulsd   xmm1, xmm0
         addsd   xmm1, xmm2
         comisd  xmm3, xmm1
-        jnb     .c_obliczenieLut_val_les0
-	/*val>255*/
+        jnb     .L27
         comisd  xmm1, xmm4
-        jb      .c_obliczenieLut_val_between_0_255
+        jb      .L24
         mov     BYTE PTR [rsp-120+rdx], -1
-        jmp     .c_obliczenieLut_warunek
-.c_obliczenieLut_val_between_0_255: /*0<val<255 -> podstaw obliczona wartosc*/
+        jmp     .L7
+.L24:
         cvttsd2si       eax, xmm1
         mov     BYTE PTR [rsp-120+rdx], al
-        jmp     .c_obliczenieLut_warunek
-		
-		
-.c_zamianaPixeli_przygotowanie: /*podstawienie odpowienich wartosc pixeli w danych obrazka*/
+        jmp     .L7
+.L26:
         test    esi, esi
         jle     .koniec
         lea     eax, [rsi-1]
         lea     rdx, [rdi+4+rax*4]
-.c_zamianaPixeli:
-	/*B*/
+.L11:
         movzx   eax, BYTE PTR [rdi]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi], al
-	/*G*/
         movzx   eax, BYTE PTR [rdi+1]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi+1], al
-	/*R*/
         movzx   eax, BYTE PTR [rdi+2]
         movzx   eax, BYTE PTR [rsp-120+rax]
         mov     BYTE PTR [rdi+2], al
-		
-        add     rdi, 4 /*przesuniecie wskazania na nastepny pixel*/
-		
+        add     rdi, 4
         cmp     rdi, rdx
-        jne     .c_zamianaPixeli
+        jne     .L11
         jmp     .koniec
 .LC0:
         .long   0
