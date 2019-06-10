@@ -4,7 +4,7 @@
 func:
         push    rbp
         push    rbx
-        sub     rsp, 904
+        sub     rsp, 904 
         /*if operacja to kontrast*/
         cmp     edx, 1
         je      .c_obliczenieLut_petla
@@ -20,10 +20,10 @@ func:
 	/*minB*/
         movzx   edx, BYTE PTR [rax]
         cmp     cl, dl
-        cmova   ecx, edx
+        cmova   ecx, edx /*move if above - wieksze*/
 	/*maxB*/
         cmp     r9b, dl
-        cmovb   r9d, edx
+        cmovb   r9d, edx /*move if below - mniejsze*/
 	/*minG*/
         movzx   edx, BYTE PTR [rax+1]
         cmp     r8b, dl
@@ -44,12 +44,12 @@ func:
         jne     .h_znajdzMinMax
 .h_obliczLut:
 	/*lutR (255.0/(maxR-minR))*(i-minR)*/
-        movzx   ebx, bl
+        movzx   ebx, bl /*move with 0 extension*/
         movzx   eax, r10b
         sub     ebx, eax
         pxor    xmm0, xmm0
-        cvtsi2sd        xmm0, ebx
-        movsd   xmm1, QWORD PTR .LC2[rip]
+        cvtsi2sd xmm0, ebx /*int -> double*/
+        movsd   xmm1, QWORD PTR .LC2[rip] /*move double*/
         movapd  xmm3, xmm1
         divsd   xmm3, xmm0
 		
@@ -60,7 +60,7 @@ func:
         movzx   eax, r8b
         sub     r11d, eax
         pxor    xmm0, xmm0
-        cvtsi2sd        xmm0, r11d
+        cvtsi2sd xmm0, r11d
         movapd  xmm2, xmm1
         divsd   xmm2, xmm0
 		
