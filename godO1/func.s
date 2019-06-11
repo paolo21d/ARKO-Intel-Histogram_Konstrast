@@ -1,3 +1,5 @@
+	
+	
 	.globl func
 	.intel_syntax noprefix
         
@@ -49,7 +51,7 @@ func:
         sub     ebx, eax
         pxor    xmm0, xmm0
         cvtsi2sd xmm0, ebx /*int -> double*/
-        movsd   xmm1, QWORD PTR .LC2[rip] /*move double*/
+        movsd   xmm1, QWORD PTR .et2[rip] /*move double*/
         movapd  xmm3, xmm1
         divsd   xmm3, xmm0
 		
@@ -130,16 +132,16 @@ func:
         jne     .h_zamianaPixeli
 		
 .koniec:
-        add     rsp, 904
+        add     rsp, 904 /*przywrocenie wierzchołka stosu*/
         pop     rbx
         pop     rbp
         ret
 /********************************************KONTRAST*******************************************/
 .c_obliczenieLut_petla:
         mov     edx, 0
-        movsd   xmm2, QWORD PTR .LC0[rip]
+        movsd   xmm2, QWORD PTR .et1[rip]
         pxor    xmm3, xmm3
-        movsd   xmm4, QWORD PTR .LC2[rip]
+        movsd   xmm4, QWORD PTR .et2[rip]
         jmp     .c_obliczenieLut_obliczenia
 .c_obliczenieLut_les0: /*val<0*/
         mov     BYTE PTR [rsp-120+rdx], 0
@@ -190,9 +192,9 @@ func:
         cmp     rdi, rdx /*sprawdzenie warunku konca petli zamieniajacej pixele*/
         jne     .c_zamianaPixeli
         jmp     .koniec
-.LC0:
+.et1:
         .long   0
         .long   1080025088
-.LC2:
+.et2:
         .long   0
         .long   1081073664
